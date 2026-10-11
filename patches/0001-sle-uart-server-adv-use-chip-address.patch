@@ -1,0 +1,59 @@
+diff --git a/application/samples/products/sle_uart/sle_uart_server/sle_uart_server_adv.c b/application/samples/products/sle_uart/sle_uart_server/sle_uart_server_adv.c
+index e18c6fe..325a70e 100644
+--- a/application/samples/products/sle_uart/sle_uart_server/sle_uart_server_adv.c
++++ b/application/samples/products/sle_uart/sle_uart_server/sle_uart_server_adv.c
+@@ -126,12 +126,38 @@ static uint16_t sle_set_scan_response_data(uint8_t *scan_rsp_data)
+     return idx;
+ }
+ 
++static const uint8_t g_sle_own_addr_fallback[SLE_ADDR_LEN] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 };
++
++/* 读取本机真实地址；读取失败或地址全 0 时回退到演示用固定地址 */
++static void sle_fill_own_addr(sle_addr_t *out)
++{
++    errcode_t ret;
++    uint8_t index;
++    uint8_t all_zero = 1;
++
++    ret = sle_get_local_addr(out);
++    if (ret == ERRCODE_SLE_SUCCESS) {
++        for (index = 0; index < SLE_ADDR_LEN; index++) {
++            if (out->addr[index] != 0) {
++                all_zero = 0;
++                break;
++            }
++        }
++    }
++    if (ret != ERRCODE_SLE_SUCCESS || all_zero != 0) {
++        (void)memcpy_s(out->addr, SLE_ADDR_LEN, g_sle_own_addr_fallback, SLE_ADDR_LEN);
++        out->type = SLE_ADDRESS_TYPE_PUBLIC;
++        sample_at_log_print("%s get local addr failed, use fallback\r\n", SLE_UART_SERVER_LOG);
++    }
++}
++
+ static int sle_set_default_announce_param(void)
+ {
+-    errno_t ret;
+     sle_announce_param_t param = {0};
+     uint8_t index;
+-    unsigned char local_addr[SLE_ADDR_LEN] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 };
++    sle_addr_t own_addr = {0};
++
++    sle_fill_own_addr(&own_addr);
+     param.announce_mode = SLE_ANNOUNCE_MODE_CONNECTABLE_SCANABLE;
+     param.announce_handle = SLE_ADV_HANDLE_DEFAULT;
+     param.announce_gt_role = SLE_ANNOUNCE_ROLE_T_CAN_NEGO;
+@@ -144,12 +170,7 @@ static int sle_set_default_announce_param(void)
+     param.conn_max_latency = SLE_CONN_MAX_LATENCY;
+     param.conn_supervision_timeout = SLE_CONN_SUPERVISION_TIMEOUT_DEFAULT;
+     param.announce_tx_power = 18;
+-    param.own_addr.type = 0;
+-    ret = memcpy_s(param.own_addr.addr, SLE_ADDR_LEN, local_addr, SLE_ADDR_LEN);
+-    if (ret != EOK) {
+-        sample_at_log_print("%s sle_set_default_announce_param data memcpy fail\r\n", SLE_UART_SERVER_LOG);
+-        return 0;
+-    }
++    param.own_addr = own_addr;
+     sample_at_log_print("%s sle_uart_local addr: ", SLE_UART_SERVER_LOG);
+     for (index = 0; index < SLE_ADDR_LEN; index++) {
+         sample_at_log_print("0x%02x ", param.own_addr.addr[index]);

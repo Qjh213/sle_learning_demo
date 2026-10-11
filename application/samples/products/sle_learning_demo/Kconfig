@@ -1,0 +1,54 @@
+choice
+    prompt "Select this board's SLE role"
+    default SLE_LEARNING_ROLE_SERVER
+
+config SLE_LEARNING_ROLE_SERVER
+    bool "Server: announce and provide an SSAP service"
+
+config SLE_LEARNING_ROLE_CLIENT
+    bool "Client: seek, connect and write to the server"
+endchoice
+
+config SLE_LEARNING_UART_BUS
+    int "UART bus"
+    range 0 2
+    default 0
+
+config SLE_LEARNING_UART_TX_PIN
+    int "UART TX pin"
+    default 17
+
+config SLE_LEARNING_UART_RX_PIN
+    int "UART RX pin"
+    default 18
+
+config SLE_LEARNING_UART_BAUDRATE
+    int "UART baud rate"
+    default 115200
+
+config SLE_LEARNING_MAX_PAYLOAD
+    int "Maximum application payload in bytes"
+    range 1 256
+    default 128
+
+config SLE_LEARNING_TASK_STACK_SIZE
+    hex "Learning task stack size"
+    default 0x2000
+    help
+        Task stack for the SLE learning task.
+        Note: the task now runs the framing/send loop, so it must have enough
+        stack for osal_printk and the SLE send APIs (0x2000 is a safe value).
+
+config SLE_LEARNING_TASK_PRIORITY
+    int "Learning task priority"
+    range 10 31
+    default 28
+
+config SUPPORT_SLE_PERIPHERAL
+    bool
+    default y if SLE_LEARNING_ROLE_SERVER
+
+config SUPPORT_SLE_CENTRAL
+    bool
+    default y if SLE_LEARNING_ROLE_CLIENT
+
